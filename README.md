@@ -1,4 +1,7 @@
-# Prospection équicoaching — Base de 100 décideurs « signal cheval »
+# Prospection équicoaching — Base de décideurs « signal cheval » (objectif 500)
+
+**État : 220 personnes** (51 niveau A vérifiées, 169 niveau B à qualifier). Extension en cours vers 500 —
+voir « Étendre la base vers 500 » en bas de page.
 
 Base de données construite **manuellement par recherche en sources ouvertes** (OSINT), en préfiguration de l'outil
 automatisé décrit dans le brief (sourcing décideurs × détection du signal « cavalier » × scoring × enrichissement × export).
@@ -88,3 +91,24 @@ python -m equiprospect enrich                     # M4 : emails pro via Dropcont
   À enrichir avec taille d'entreprise (Pappers/annuaire-entreprises) et proximité géographique d'un centre équestre.
 - **Renforts M2 prévus** (non implémentés ici) : matching nom/prénom sur les résultats publics FFE Compet,
   et hashtags/follows Instagram (#equitation #cso #dressage).
+
+## Étendre la base vers 500
+
+Gisements ajoutés lors de l'extension 100 → 220 (tous reproductibles à plus grande échelle) :
+
+1. **Gouvernance hippique & associative** (très haut rendement, signal cheval prouvé par la fonction) :
+   comité national + bureaux régionaux **UNAT** (amateurs de trot), bureau du **Club des Gentlemen-Riders**,
+   comité/CA **France Galop** (56 membres), élus **SETF/Le Trot** (52 membres + régions), **SNPT**, **FPG**, **APGO**,
+   comité directeur **FF Polo**, présidents de **sociétés de courses** (~230 hippodromes en France).
+   → Il reste ~150 noms à extraire de ces mêmes listes (comité France Galop complet via
+   france-sire.com « liste complète des 56 membres », résultats SETF de toutes les régions, bureaux UNAT/CDE restants).
+2. **Registre Pappers** : dirigeants cumulant une structure haras/écurie ET une société commerciale
+   (requêtes `site:pappers.fr/dirigeant "haras" holding` etc.). En local : **Pappers API** ou
+   **recherche-entreprises.api.gouv.fr** (gratuite, sans clé) pour industrialiser — ces API étaient bloquées
+   par la politique réseau de l'environnement d'exécution.
+3. **X-ray LinkedIn** : la banque de ~270 requêtes de `python -m equiprospect queries` branchée sur une
+   **API SERP** (Serper.dev ≈ 0,3 $/1000 requêtes, SerpAPI…) rapporte 3-8 candidats niveau B par requête
+   → largement de quoi dépasser 500, avec `python -m equiprospect classify --batch` pour qualifier.
+4. **Témoignages équicoaching** et presse hippique/économique : à re-balayer trimestriellement (nouveaux témoignages).
+
+Les colonnes restent inchangées ; chaque nouvelle entrée garde sa source et sa requête de découverte.
