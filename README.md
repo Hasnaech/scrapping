@@ -62,10 +62,29 @@ explicitement dans les colonnes `niveau_preuve` / `preuve` / `confiance_0_100`.
 - `recherche-entreprises.api.gouv.fr` et la plupart des sites de classements étaient bloqués par la politique réseau de
   cet environnement ; en local, ces sources permettront d'industrialiser le point 4 (l'API est gratuite et sans clé).
 
-## Prochaine étape : l'outil (5 modules du brief)
+## L'outil : `equiprospect/` (les 5 modules du brief)
 
-- **M1 Sourcing** : requêtes X-ray ci-dessus + Pappers API (mandats) + Apollo/Kaspr pour les titres RH/L&D.
-- **M2 Signal cavalier** : récupération du texte public du profil → classifieur LLM (prompt JSON du brief) + renfort FFE Compet (moteur de résultats par nom) et Instagram.
-- **M3 Scoring** : `pouvoir de décision × confiance signal × taille entreprise × géo` — la colonne `confiance_0_100` amorce déjà ce score.
-- **M4 Enrichissement** : Dropcontact (RGPD-friendly) pour remplir `email`.
-- **M5 Export** : ce CSV est déjà au format cible ; ajout Google Sheet/Airtable trivial.
+Package Python sans dépendance obligatoire (le SDK `anthropic` n'est requis que pour le
+classifieur LLM ; `pip install -r requirements.txt`).
+
+```bash
+python -m equiprospect queries                    # M1 : requêtes X-ray à coller dans Google/SERP API
+python -m equiprospect classify --heuristique     # M2 : pré-tri hors-ligne par mots-clés (gratuit)
+python -m equiprospect classify                   # M2 : classifieur Claude (sortie JSON structurée)
+python -m equiprospect classify --batch           # M2 : Batches API = −50 % de coût sur les gros lots
+python -m equiprospect score                      # M3 : score = poids(poste) × poids(signal) × confiance
+python -m equiprospect top --n 20                 # M3 : top prospects chauds
+python -m equiprospect enrich                     # M4 : emails pro via Dropcontact (DROPCONTACT_API_KEY)
+# M5 : data/prospects.csv est le format d'export (import direct Google Sheet/Airtable)
+```
+
+- **M2** ajoute les colonnes `llm_cavalier / llm_type_signal / llm_indice / llm_confiance`.
+  Le prompt du classifieur est celui du brief (JSON `{cavalier, indice, confiance}`), avec gestion
+  des homonymies et des mentions professionnelles. Pour classifier des **profils complets**, ajouter
+  une colonne `texte_profil` au CSV (sortie du scraping LinkedIn) — le classifieur la prend en priorité.
+  Modèle par défaut : `claude-opus-4-8` ; pour de très gros lots économiques : `--model claude-haiku-4-5 --batch`.
+  Clé API : `export ANTHROPIC_API_KEY=...`
+- **M3** : le score (0-100) garde la meilleure confiance entre vérification manuelle et classifieur.
+  À enrichir avec taille d'entreprise (Pappers/annuaire-entreprises) et proximité géographique d'un centre équestre.
+- **Renforts M2 prévus** (non implémentés ici) : matching nom/prénom sur les résultats publics FFE Compet,
+  et hashtags/follows Instagram (#equitation #cso #dressage).

@@ -1,1 +1,2 @@
 scrapling @ git+https://github.com/D4Vinci/Scrapling.git
+anthropic>=0.92.0
