@@ -8,6 +8,7 @@ Exemples :
   python -m equiprospect classify --model claude-haiku-4-5 --batch   # lot économique
   python -m equiprospect score                        # M3 : calcule la colonne score
   python -m equiprospect top --n 20                   # M3 : top prospects chauds
+  python -m equiprospect pme                           # M3bis : filtre TPE/PME (<100) joignables
   python -m equiprospect enrich                       # M4 : emails via Dropcontact (clé requise)
 
 Le classifieur lit data/prospects.csv et travaille sur le texte disponible
@@ -92,6 +93,31 @@ def cmd_top(args) -> None:
         print(f"{ligne['score']:>5}  {ligne['nom']:<28} {ligne['poste'][:38]:<40} {ligne.get('entreprise','')[:30]}")
 
 
+def cmd_pme(args) -> None:
+    """Marque taille/accessibilité et exporte la cible TPE-PME joignable."""
+    from pathlib import Path
+
+    from . import taille
+
+    lignes = export.charger()
+    for ligne in lignes:
+        t, acc = taille.classer(ligne.get("nom", ""), ligne.get("entreprise", ""))
+        ligne["taille_estimee"] = t
+        ligne["cible_accessible"] = acc
+    export.sauvegarder(lignes, CHEMIN_BASE)
+
+    cible = [l for l in lignes if l.get("cible_accessible") == "oui"]
+    if args.inclure_assoc:
+        cible += [l for l in lignes if l.get("cible_accessible") == "a_confirmer"]
+    cible.sort(key=lambda l: float(l.get("score") or 0), reverse=True)
+
+    chemin_pme = Path(CHEMIN_BASE).parent / "prospects_pme.csv"
+    export.sauvegarder(cible, chemin_pme)
+    print(f"OK — {len(cible)} cibles TPE/PME joignables (sur {len(lignes)}) → {chemin_pme}")
+    for l in cible[: args.n]:
+        print(f"{l.get('score','') or '-':>5}  {l['nom']:<26} {l['poste'][:36]:<38} {l.get('entreprise','')[:28]}")
+
+
 def cmd_enrich(args) -> None:
     from . import enrich
 
@@ -136,6 +162,12 @@ def main() -> None:
     t = sub.add_parser("top", help="M3 : affiche les prospects les plus chauds")
     t.add_argument("--n", type=int, default=20)
     t.set_defaults(func=cmd_top)
+
+    m = sub.add_parser("pme", help="M3bis : filtre TPE/PME (<100) joignables")
+    m.add_argument("--n", type=int, default=30, help="nb de lignes affichées")
+    m.add_argument("--inclure-assoc", action="store_true",
+                   help="inclure aussi les dirigeants bénévoles d'associations/fédérations")
+    m.set_defaults(func=cmd_pme)
 
     e = sub.add_parser("enrich", help="M4 : emails pro via Dropcontact")
     e.add_argument("--n", type=int, default=50, help="nb max de lignes à enrichir")
