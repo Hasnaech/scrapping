@@ -45,6 +45,16 @@ def _norm(s: str) -> str:
     return "".join(c for c in s if unicodedata.category(c) != "Mn")
 
 
+def classer_ligne(ligne: dict) -> tuple[str, str]:
+    """Comme classer(), mais privilégie l'effectif RÉEL (gouv.py) s'il est là."""
+    reel = ligne.get("effectif_moins_100")
+    if reel in ("oui", "non") and _norm(ligne.get("nom", "")) not in {_norm(c) for c in CELEBRITES}:
+        if reel == "non":
+            return f"{ligne.get('effectif_reel', '>=100')} salariés", "non"
+        return f"{ligne.get('effectif_reel', '<100')} salariés (vérifié)", "oui"
+    return classer(ligne.get("nom", ""), ligne.get("entreprise", ""))
+
+
 def classer(nom: str, entreprise: str) -> tuple[str, str]:
     """Retourne (taille_estimee, cible_accessible) : 'oui'/'non'/'a_confirmer'."""
     if _norm(nom) in {_norm(c) for c in CELEBRITES}:

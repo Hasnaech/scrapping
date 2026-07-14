@@ -101,7 +101,7 @@ def cmd_pme(args) -> None:
 
     lignes = export.charger()
     for ligne in lignes:
-        t, acc = taille.classer(ligne.get("nom", ""), ligne.get("entreprise", ""))
+        t, acc = taille.classer_ligne(ligne)
         ligne["taille_estimee"] = t
         ligne["cible_accessible"] = acc
     export.sauvegarder(lignes, CHEMIN_BASE)
@@ -116,6 +116,38 @@ def cmd_pme(args) -> None:
     print(f"OK — {len(cible)} cibles TPE/PME joignables (sur {len(lignes)}) → {chemin_pme}")
     for l in cible[: args.n]:
         print(f"{l.get('score','') or '-':>5}  {l['nom']:<26} {l['poste'][:36]:<38} {l.get('entreprise','')[:28]}")
+
+
+def cmd_gouv(args) -> None:
+    """Enrichissement/sourcing GRATUIT via recherche-entreprises.api.gouv.fr."""
+    from . import gouv
+
+    lignes = export.charger()
+    if args.sourcer:
+        candidats = gouv.sourcer(args.sourcer, activite=args.activite, pages=args.pages)
+        noms = {l["nom"].strip().lower() for l in lignes}
+        champs = list(lignes[0].keys()) if lignes else []
+        prochain = max((int(l["id"]) for l in lignes), default=0) + 1
+        ajoutes = 0
+        for c in candidats:
+            if c["nom"].strip().lower() in noms:
+                continue
+            row = {k: "" for k in champs}
+            row.update(c)
+            row["id"] = str(prochain + ajoutes)
+            row["niveau_preuve"] = "B-registre gouv à qualifier"
+            row["confiance_0_100"] = "50"
+            row["linkedin"] = ("https://www.linkedin.com/search/results/people/?keywords="
+                               + c["nom"].replace(" ", "%20"))
+            lignes.append(row)
+            noms.add(c["nom"].strip().lower())
+            ajoutes += 1
+        export.sauvegarder(lignes, CHEMIN_BASE)
+        print(f"OK — {ajoutes} dirigeants d'élevages équins ajoutés → {CHEMIN_BASE}")
+    else:  # --enrichir (défaut)
+        n = gouv.enrichir_effectif(lignes)
+        export.sauvegarder(lignes, CHEMIN_BASE)
+        print(f"OK — {n} sociétés enrichies (effectif réel) → {CHEMIN_BASE}")
 
 
 def cmd_enrich(args) -> None:
@@ -168,6 +200,15 @@ def main() -> None:
     m.add_argument("--inclure-assoc", action="store_true",
                    help="inclure aussi les dirigeants bénévoles d'associations/fédérations")
     m.set_defaults(func=cmd_pme)
+
+    g = sub.add_parser("gouv", help="GRATUIT : effectif réel + sourcing via l'API gouv")
+    g.add_argument("--enrichir", action="store_true",
+                   help="remplit l'effectif réel des sociétés (défaut si --sourcer absent)")
+    g.add_argument("--sourcer", metavar="REQUETE",
+                   help="source des dirigeants d'élevages équins (ex: --sourcer haras)")
+    g.add_argument("--activite", default="01.43Z", help="code NAF (défaut élevage équin)")
+    g.add_argument("--pages", type=int, default=3)
+    g.set_defaults(func=cmd_gouv)
 
     e = sub.add_parser("enrich", help="M4 : emails pro via Dropcontact")
     e.add_argument("--n", type=int, default=50, help="nb max de lignes à enrichir")

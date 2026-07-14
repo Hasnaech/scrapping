@@ -112,3 +112,18 @@ Gisements ajoutés lors de l'extension 100 → 220 (tous reproductibles à plus 
 4. **Témoignages équicoaching** et presse hippique/économique : à re-balayer trimestriellement (nouveaux témoignages).
 
 Les colonnes restent inchangées ; chaque nouvelle entrée garde sa source et sa requête de découverte.
+
+### La voie GRATUITE (recommandée pour scaler à moindre coût)
+
+`equiprospect/gouv.py` s'appuie sur **recherche-entreprises.api.gouv.fr** — API publique de l'État,
+**gratuite et sans clé** (bloquée dans l'environnement d'exécution, mais fonctionnelle en local) :
+
+- `python -m equiprospect gouv --enrichir` : remplit l'**effectif réel** (colonnes `effectif_reel`,
+  `effectif_moins_100`, `siren`) de chaque société. Le filtre `pme` bascule alors de l'estimation
+  par nom vers l'effectif **vérifié** — plus aucun grand groupe ne passe à travers.
+- `python -m equiprospect gouv --sourcer haras` : source de nouveaux **dirigeants d'élevages équins**
+  (NAF 01.43Z) de moins de 100 salariés — propriétaires de chevaux à pouvoir de décision, gratuitement.
+
+Combinée au classifieur `classify --heuristique` (gratuit, sans Claude) et au X-ray manuel, c'est la
+chaîne **à 0 €** de bout en bout. Les options payantes (SERP API, Claude, Dropcontact) ne servent qu'à
+accélérer le volume et l'enrichissement email — elles ne sont pas nécessaires pour progresser.
